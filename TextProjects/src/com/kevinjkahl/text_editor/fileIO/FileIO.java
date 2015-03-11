@@ -17,36 +17,26 @@ public class FileIO {
 
 	JTextPane textPane;
 
-	public FileIO( JTextPane jTextPane ) {
-
-		this.textPane = jTextPane;
+	public FileIO() {
 
 	}
 
-	public void open( JTextPane mainEditorPane ) {
+	public BufferedReader open( File file ) {
 
 		BufferedReader br;
-		int returnVal;
-		JFileChooser fileChooser = new JFileChooser();
 
-		returnVal = fileChooser.showOpenDialog( null );
-
-		if ( returnVal == JFileChooser.APPROVE_OPTION ) {// if a file is selected
-			file = fileChooser.getSelectedFile();
-
+		try {
+			FileReader fReader = new FileReader( file );
 			try {
-				FileReader fReader = new FileReader( file );
-
 				br = new BufferedReader( fReader );
-				mainEditorPane.read( br, null );
-				br.close();
-				mainEditorPane.requestFocus();
-
-			} catch ( Exception error ) {
-				error.printStackTrace();
+				return br;
+			} catch ( Exception e ) {
+				return null;
 			}
+		} catch ( Exception error ) {
+			error.printStackTrace();
 		}
-
+		return null;
 	}
 
 	public void save( JTextPane mainEditorPane ) {
