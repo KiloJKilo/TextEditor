@@ -5,8 +5,6 @@ import java.awt.EventQueue;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.util.Random;
 
@@ -24,14 +22,19 @@ import javax.swing.JTextPane;
 import javax.swing.JTree;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.Document;
 
 import com.kevinjkahl.text_editor.actions.MenuActions;
+import com.kevinjkahl.text_editor.editors.EditorPane;
 import com.kevinjkahl.text_editor.editors.TextEditorWrap;
+import com.kevinjkahl.text_editor.mouse_adapters.TabPaneMouseAdapter;
 
 public class TextEditor {
 
-	// private static TextEditor TextEditor;
-	// private JPanel contentPane;
 	private JTextPane mainEditorPane;
 	private JTabbedPane tabEditorPane;
 	private final int frameW = 700;
@@ -39,14 +42,9 @@ public class TextEditor {
 	private final double leftSplitConstraint = .25;
 	private short tc = 1;
 	private MenuActions menuActions = new MenuActions( this );
+	private TextEditor textEditor = this;
 	private Icon newFileIcon = new ImageIcon( getClass().getResource( "/File-New-icon.png" ) );
-
-	// public static void main( String[] args ) {
-	// new TextEditor();
-	//
-	//
-	//
-	// }
+	private JMenuItem mntmSave;
 
 	/**
 	 * Constructor. No arguments. Creates the main frame of text editor.
@@ -96,42 +94,32 @@ public class TextEditor {
 
 			/* Create a new JTabbed pane called tabEditorPane */
 			tabEditorPane = new JTabbedPane();
+
 			tabEditorPane.addTab( "", newFileIcon, null );
 			tabEditorPane.setDisabledIconAt( 0, newFileIcon );
 			tabEditorPane.setEnabledAt( 0, false );
 			tabEditorPane.getUI();
-			tabEditorPane.addMouseListener( new MouseAdapter() {
+			tabEditorPane.addMouseListener( new TabPaneMouseAdapter( tabEditorPane, textEditor ) );
 
-				@Override
-				public void mousePressed( MouseEvent e ) {
-					int button = e.getButton();
-					JTabbedPane tabs = ( JTabbedPane ) e.getSource();
-					// System.out.println( tabs.findComponentAt( e.getX(), e.getY() ) );
-					// System.out.println( tabs.findComponentAt( e.getX(), e.getY() ) == tabs && tabs.indexAtLocation( e.getX(), e.getY() ) == -1 ? "No tab at location."
-					// : "Tab at location." );
+			ChangeListener changeListener = new ChangeListener() {
 
-					if ( button == 0 ) {// no button
-						System.out.println( "no button" );
-					} else if ( button == 1 ) {// left click
-						if ( e.getClickCount() % 2 == 0 ) {
-							e.consume();
-							System.out.println( "left double click" );
+				public void stateChanged( ChangeEvent changeEvent ) {
+					JTabbedPane sourceTabbedPane = ( JTabbedPane ) changeEvent.getSource();
+					int index = sourceTabbedPane.getSelectedIndex();
+					EditorPane tab = ( EditorPane ) sourceTabbedPane.getComponentAt( sourceTabbedPane.getSelectedIndex() );
 
-							/* Create a new untitled tab */
-							newBlankTab();
-
-						}
-					} else if ( button == 2 ) {// wheel click
-						System.out.println( "Wheel click" );
-						// TODO Implement save and close
-					} else if ( button == 3 ) {// right click
-						System.out.println( "right click" );
-
+					if ( tab.getPath() != null ) {// if the tab filename is not null
+						System.out.println( tab.getPath() + tab.getFileName() );
+						mntmSave.setEnabled( true );
+					} else {// it is null
+						mntmSave.setEnabled( false );
 					}
 
+					System.out.println( "Tab changed to: " + sourceTabbedPane.getTitleAt( index ) );
 				}
+			};
 
-			} );
+			tabEditorPane.addChangeListener( changeListener );
 
 			/* Add the dirTree and tabEditorPane to the splitPane, split horizontally */
 			splitPane = new JSplitPane( JSplitPane.HORIZONTAL_SPLIT, dirTree, tabEditorPane );
@@ -212,26 +200,16 @@ public class TextEditor {
 		menuBar.add( mnFile );// nest it under menu bar
 
 		JMenuItem mntmOpen = new JMenuItem( menuActions.new OpenFileAction( "Open" ) );// create open menu item
-		// mntmOpen.addActionListener( new ActionListener() {
-		//
-		// public void actionPerformed( ActionEvent arg0 ) {
-		// fileIO.open( mainEditorPane );
-		// }
-		// } );
-		//
 		mnFile.add( mntmOpen );// nest it under file
-		JMenuItem mntmSave = new JMenuItem( menuActions.new OpenFileAction( "Save" ) );// create the save menu item
-		// mntmSave.addActionListener( newMenuActions.new NewSaveAction( "Save" ) );
 
-		// mntmSave.addActionListener( new ActionListener() {
-		//
-		// @Override
-		// public void actionPerformed( ActionEvent e ) {
-		// fileIO.save( mainEditorPane );
-		//
-		// }
-		// } );
+		JMenuItem mntmSaveAs = new JMenuItem( menuActions.new SaveFileAction( tabEditorPane ) );// create the save menu item
+		mntmSaveAs.setText( "Save As" );
+		mnFile.add( mntmSaveAs );
+
+		mntmSave = new JMenuItem( menuActions.new SaveFileAction( tabEditorPane ) );// create the save menu item
+		mntmSave.setText( "Save" );
 		mnFile.add( mntmSave );
+		mntmSave.setEnabled( false );
 
 		// JMenuItem mntmNew = new JMenuItem( new NewFileAction( "New" ) );// create the save menu item
 		// ***JMenuItem mntmNew = new JMenuItem( menuActions.new NewFileAction( "New" ) );// create the save menu item
@@ -299,10 +277,12 @@ public class TextEditor {
 		Color color[] = randomColor();
 		/* add a tab with the dir and filename as the title, setting the component as type TextEditorWrap */
 		// TODO: do something about creating a new instance of an editor on the fly
-		tabEditorPane.addTab( fileName, new TextEditorWrap( br, dir, fileName, color[ 0 ] ) );
+		tabEditorPane.addTab( fileName, new TextEditorWrap( new MyDocumentListener(), br, dir, fileName, color[ 0 ] ) );
 
 		/* Move to the just created tab */
 		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( fileName ) );
+
+		/* Set tooltip text and color */
 		tabEditorPane.setToolTipTextAt( tabEditorPane.indexOfTab( fileName ), dir );
 		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( fileName ), color[ 1 ] );
 
@@ -310,14 +290,15 @@ public class TextEditor {
 
 	public void newBlankTab() {
 		Color color[] = randomColor();
-		tabEditorPane.add( "Untitled" + tc, new TextEditorWrap( "Untitled" + tc, color[ 0 ] ) );
+		tabEditorPane.add( "Untitled" + tc, new TextEditorWrap( new MyDocumentListener(), "Untitled" + tc, color[ 0 ] ) );
 		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( "Untitled" + tc ) );
 		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( "Untitled" + tc ), color[ 1 ] );
+		tabEditorPane.getComponentAt( tabEditorPane.indexOfTab( "Untitled" + tc ) ).requestFocus();// give the child component the focus
 		tc++;
 
 	}
 
-	private Color[] randomColor() {
+	public Color[] randomColor() {
 		Color[] color = new Color[ 2 ];
 		Random random = new Random();
 		final float hue = random.nextFloat();
@@ -330,4 +311,42 @@ public class TextEditor {
 
 	}
 
+	public void updateTab( String fileName, String path, int index ) {
+
+		tabEditorPane.setTitleAt( index, fileName );
+		tabEditorPane.setToolTipTextAt( index, path + fileName );
+
+	}
+
+}
+
+class MyDocumentListener implements DocumentListener {
+
+	// final String newline = "\n";
+
+	public void insertUpdate( DocumentEvent e ) {
+		// updateLog(e, "inserted into");
+		System.out.println( e );
+	}
+
+	public void removeUpdate( DocumentEvent e ) {
+		System.out.println( "remove update" );
+	}
+
+	public void changedUpdate( DocumentEvent e ) {
+		// Plain text components don't fire these events.
+		System.out.println( "change update" );
+	}
+
+	// public void updateLog(DocumentEvent e, String action) {
+	// Document doc = (Document)e.getDocument();
+	// int changeLength = e.getLength();
+	// displayArea.append(
+	// changeLength + " character"
+	// + ((changeLength == 1) ? " " : "s ")
+	// + action + " " + doc.getProperty("name") + "."
+	// + newline
+	// + "  Text length = " + doc.getLength() + newline);
+	// displayArea.setCaretPosition(displayArea.getDocument().getLength());
+	// }
 }

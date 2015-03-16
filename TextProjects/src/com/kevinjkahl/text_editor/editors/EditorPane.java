@@ -5,18 +5,22 @@ import java.awt.Component;
 
 import javax.swing.BorderFactory;
 import javax.swing.JTextPane;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.ComponentUI;
 
 public abstract class EditorPane extends JTextPane {
 	
-	public String fileName;
-	public String dir;
+	private String fileName;
+	private String path;
+	private DocumentListener documentListener;
+	
 
-	public EditorPane(String fileName, String dir, Color color) {
+	public EditorPane(DocumentListener dl , String fileName, String path, Color color) {
 		super();
 		this.setBorder( BorderFactory.createLineBorder( color, 2 ) );
 		this.fileName = fileName;
-		this.dir = dir;
+		this.path = path;
+		this.documentListener = dl;
 	}
 
 	@Override
@@ -25,5 +29,33 @@ public abstract class EditorPane extends JTextPane {
 		ComponentUI ui = getUI();
 
 		return parent != null ? ( ui.getPreferredSize( this ).width <= parent.getSize().width ) : true;
+	}
+	
+	public void changeBorder(Color color) {
+		this.setBorder( BorderFactory.createLineBorder( color, 2 ) );
+	}
+
+	
+	public String getFileName() {
+		return fileName;
+	}
+
+	
+	public void setFileName( String fileName ) {
+		this.fileName = fileName;
+	}
+
+	
+	public String getPath() {
+		return path;
+	}
+
+	
+	public void setPath( String dir ) {
+		this.path = dir;
+	}
+	
+	public void setDocumentListener(DocumentListener dl) {
+		this.documentListener = dl;
 	}
 }

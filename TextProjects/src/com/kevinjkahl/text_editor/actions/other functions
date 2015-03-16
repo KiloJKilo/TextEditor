@@ -1,0 +1,78 @@
+private String reverse( String string ) {
+		// txtInput.setText( "" );
+		StringBuffer s = new StringBuffer( string );
+		// s.append( string );
+		return s.reverse().toString();
+
+	}
+
+	private String vowelCount( String string ) {
+		// txtInput.setText( "" );
+
+		short a = 0;
+		short e = 0;
+		short i = 0;
+		short o = 0;
+		short u = 0;
+
+		string = string.toLowerCase();
+
+		for ( int c = 0; c < string.length(); c++ ) {
+
+			switch ( string.charAt( c ) ) {
+			case 'a':
+				a++;
+				break;
+			case 'e':
+				e++;
+				break;
+			case 'i':
+				i++;
+				break;
+			case 'o':
+				o++;
+				break;
+			case 'u':
+				u++;
+				break;
+			default:
+				break;
+			}
+
+		}
+
+		int[] vowels = new int[ 5 ];
+		vowels[ 0 ] = a;
+		vowels[ 1 ] = e;
+		vowels[ 2 ] = i;
+		vowels[ 3 ] = o;
+		vowels[ 4 ] = u;
+
+		int vowelTotal = a + e + i + o + u;
+
+		String vowelCount = "";
+
+		vowelCount = "The total occurences of A is: " + a + ". The total occurences of B is: " + e + ". The Total occurences of I is: " + i + ". The total occureces of O is:" + o
+				+ ". The total occureces of U is: " + u + ". Giving us " + vowelTotal + " total occureces of vowels.";
+		return vowelCount;
+
+	}
+
+	private String palindrome( String string ) {
+		StringBuffer s = new StringBuffer( string );
+		String reversed = s.reverse().toString();
+
+		if ( string.equals( reversed ) ) {
+			return "This is a palindrome!";
+		} else {
+			return "This is not a palindrome";
+		}
+
+	}
+
+	private String wordCount( String string ) {
+		String trimmed = string.trim();
+		int words = trimmed.isEmpty() ? 0 : trimmed.split( "\\s+" ).length;
+
+		return words + " word(s) entered.";
+	}

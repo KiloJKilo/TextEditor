@@ -4,15 +4,18 @@ import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.IOException;
 
+import javax.swing.BorderFactory;
+import javax.swing.event.DocumentListener;
+
 public class TextEditorWrap extends EditorPane {
 
 	public TextEditorWrap() {
-		super( "", "Untitled", null );
+		super( null, "", "Untitled", null );
 
 	}
 
-	public TextEditorWrap( BufferedReader br, String fileName, String dir, Color color ) {
-		super( fileName, dir, color );
+	public TextEditorWrap( DocumentListener dl , BufferedReader br , String fileName, String dir, Color color ) {
+		super( dl, fileName, dir, color );
 		super.getScrollableTracksViewportWidth();
 		try {
 			this.read( br, null );
@@ -24,11 +27,18 @@ public class TextEditorWrap extends EditorPane {
 
 	/**
 	 * Constructor for new blank tabs
-	 * @param title - call to super to set title of tab / file
-	 * @param color - call to super to set border color of text pane
+	 * 
+	 * @param title
+	 *            - call to super to set title of tab / file
+	 * @param color
+	 *            - call to super to set border color of text pane
 	 */
-	public TextEditorWrap( String title, Color color ) {
-		super(title, null, color);
+	public TextEditorWrap( DocumentListener dl, String title, Color color ) {
+		super( dl, title, null, color );
+	}
+
+	public void changeBorder( Color color ) {
+		super.changeBorder( color );
 	}
 
 }
