@@ -14,7 +14,9 @@ import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
 import com.kevinjkahl.TextEditor;
-import com.kevinjkahl.text_editor.editors.EditorPane;
+import com.kevinjkahl.text_editor.actions.Actions;
+import com.kevinjkahl.text_editor.actions.Actions.NewFileAction;
+import com.kevinjkahl.text_editor.editors.TextEditorPane;
 
 public class TabPaneMouseAdapter extends MouseAdapter {
 
@@ -34,7 +36,8 @@ public class TabPaneMouseAdapter extends MouseAdapter {
 			if ( e.getClickCount() % 2 == 0 ) {// if the user double clicks the left mouse on the first tab (the new tab button)
 				// e.consume();
 				/* Create a new untitled tab */
-				textEditor.newBlankTab();
+				TextEditorPane ep = textEditor.newBlankTab( "text/plain" );
+				// textEditor.registerDocListener( ep );
 			}
 
 		} else {// zero wasn't selected
@@ -43,13 +46,13 @@ public class TabPaneMouseAdapter extends MouseAdapter {
 				if ( SwingUtilities.isLeftMouseButton( e ) ) {// user clicks left mouse
 
 					if ( e.isControlDown() ) {
-						EditorPane tab = ( EditorPane ) tabbedPane.getComponentAt( index );
+						TextEditorPane tab = ( TextEditorPane ) tabbedPane.getComponentAt( index );
 						// change color
 						System.out.println( "color" );
 						Color color[] = textEditor.randomColor();
 						tabbedPane.setBackgroundAt( index, color[ 1 ] );
 						tab.changeBorder( color[ 0 ] );
-
+						
 					} else {// control wasn't pressed
 
 						if ( tabbedPane.getSelectedIndex() != index ) {// if the selected index does not equal the index
@@ -104,5 +107,4 @@ public class TabPaneMouseAdapter extends MouseAdapter {
 
 		}
 	}
-
 }

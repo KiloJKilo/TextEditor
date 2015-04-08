@@ -30,7 +30,6 @@ public class TestFrame extends JFrame {
 
 	private JPanel contentPane;
 	private JTextField textField;
-	private final Action action = new SwingAction();
 
 	/**
 	 * Create the frame.
@@ -70,7 +69,8 @@ public class TestFrame extends JFrame {
 
 		/* Create a new JTabbed pane called tabEditorPane */
 		JTabbedPane tabEditorPane = new JTabbedPane();
-		tabEditorPane.addTab( "Double Click to Create New", null );
+		tabEditorPane.addTab( "N", null );
+		tabEditorPane.addTab( "slkdjaslkdfjlaks lk ajsjaslfdjsfd lkasfjdlaksd", null );
 
 		/* Add the dirTree and tabEditorPane to the splitPane, split horizontally */
 		splitPane = new JSplitPane( JSplitPane.HORIZONTAL_SPLIT, dirTree, tabEditorPane );

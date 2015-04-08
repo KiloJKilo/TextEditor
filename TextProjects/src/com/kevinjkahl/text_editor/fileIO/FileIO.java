@@ -10,11 +10,11 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTextPane;
 
+import com.kevinjkahl.text_editor.editors.TextEditorPane;
+
 public class FileIO {
 
 	JTextPane textPane;
-	final JOptionPane fileOverWrite = new JOptionPane( "The only way to close this dialog is by\n" + "pressing one of the following buttons.\n" + "Do you understand?",
-			JOptionPane.QUESTION_MESSAGE, JOptionPane.YES_NO_OPTION );
 
 	public FileIO() {
 
@@ -38,18 +38,20 @@ public class FileIO {
 		return null;
 	}
 
-	public boolean saveAs( File file, String textToSave ) {
+	public boolean saveAs( File file, String textToSave, TextEditorPane tab  ) {
 
-		try {
-
-			FileWriter fWriter = new FileWriter( file.getAbsolutePath() );
-			BufferedWriter bw = new BufferedWriter( fWriter );
-			bw.write( textToSave );
-			bw.close();
-			return true;
-		} catch ( Exception e ) {
-			return false;
-		}
+		return tab.save(file, textToSave);
+		
+//		try {
+//
+//			FileWriter fWriter = new FileWriter( file.getAbsolutePath() );
+//			BufferedWriter bw = new BufferedWriter( fWriter );
+//			bw.write( textToSave );
+//			bw.close();
+//			return true;
+//		} catch ( Exception e ) {
+//			return false;
+//		}
 
 	}
 

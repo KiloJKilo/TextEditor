@@ -6,8 +6,10 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.util.Random;
 
+import javax.swing.Action;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -26,10 +28,12 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.text.Document;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.StyledEditorKit;
 
-import com.kevinjkahl.text_editor.actions.MenuActions;
-import com.kevinjkahl.text_editor.editors.EditorPane;
+import com.kevinjkahl.text_editor.actions.Actions;
+import com.kevinjkahl.text_editor.editors.TextEditorPane;
+import com.kevinjkahl.text_editor.editors.RichTextEditor;
 import com.kevinjkahl.text_editor.editors.TextEditorWrap;
 import com.kevinjkahl.text_editor.mouse_adapters.TabPaneMouseAdapter;
 
@@ -40,11 +44,13 @@ public class TextEditor {
 	private final int frameW = 700;
 	private final int frameH = 700;
 	private final double leftSplitConstraint = .25;
-	private short tc = 1;
-	private MenuActions menuActions = new MenuActions( this );
 	private TextEditor textEditor = this;
+	private Actions Actions = new Actions( textEditor );
 	private Icon newFileIcon = new ImageIcon( getClass().getResource( "/File-New-icon.png" ) );
-	private JMenuItem mntmSave;
+	private JMenuItem mnFileSave;
+	private JMenuItem mnFileSaveAs;
+	private short tc = 1;
+	private final String appDataPath = System.getenv( "APPDATA" ) + "\\TextEditor\\";
 
 	/**
 	 * Constructor. No arguments. Creates the main frame of text editor.
@@ -61,7 +67,6 @@ public class TextEditor {
 				}
 
 				new MainFrame();
-
 			}
 		} );
 	}
@@ -105,21 +110,28 @@ public class TextEditor {
 
 				public void stateChanged( ChangeEvent changeEvent ) {
 					JTabbedPane sourceTabbedPane = ( JTabbedPane ) changeEvent.getSource();
-					int index = sourceTabbedPane.getSelectedIndex();
-					EditorPane tab = ( EditorPane ) sourceTabbedPane.getComponentAt( sourceTabbedPane.getSelectedIndex() );
 
-					if ( tab.getPath() != null ) {// if the tab filename is not null
-						System.out.println( tab.getPath() + tab.getFileName() );
-						mntmSave.setEnabled( true );
-					} else {// it is null
-						mntmSave.setEnabled( false );
+					if ( sourceTabbedPane.getSelectedIndex() <= 0 ) {// if the first tab or no tab is selected, save as and save will be deactivated
+						mnFileSave.setEnabled( false );
+						mnFileSaveAs.setEnabled( false );
+					} else {
+						mnFileSaveAs.setEnabled( true );
+						int index = sourceTabbedPane.getSelectedIndex();
+						TextEditorPane tab = ( TextEditorPane ) sourceTabbedPane.getComponentAt( sourceTabbedPane.getSelectedIndex() );
+						if ( tab.isSaveEligible() && sourceTabbedPane.getTitleAt( index ).contains( "*" ) ) {// if tab is save eligible and if the tab title has a star, it is savable
+							// System.out.println( tab.getPath() + tab.getFileName() );
+							mnFileSave.setEnabled( true );
+						} else {
+							mnFileSave.setEnabled( false );
+						}
 					}
 
-					System.out.println( "Tab changed to: " + sourceTabbedPane.getTitleAt( index ) );
 				}
 			};
 
 			tabEditorPane.addChangeListener( changeListener );
+			/* Set this Editor Pane inside the actions class */
+			Actions.setTabEditorPane( tabEditorPane );
 
 			/* Add the dirTree and tabEditorPane to the splitPane, split horizontally */
 			splitPane = new JSplitPane( JSplitPane.HORIZONTAL_SPLIT, dirTree, tabEditorPane );
@@ -193,23 +205,35 @@ public class TextEditor {
 	 * @return menu - the menu created inside created
 	 */
 	private JMenuBar createMenu( JFrame frame ) {
+		/* Create the menu bar */
+		JMenuBar mainMenuBar = new JMenuBar();
+		/* Create the menus under the main menu bar and nest them */
+		JMenu mmFile = new JMenu( "File" );
+		JMenu mmDoc = new JMenu( "Document" );
+		mainMenuBar.add( mmFile );
+		mainMenuBar.add( mmDoc );
 
-		JMenuBar menuBar = new JMenuBar(); // create menu bar called menuBar
+		/* Create the menus under file and add them */
+		JMenuItem mnFileOpen = new JMenuItem( Actions.new OpenFileAction( "Open", tabEditorPane ) );// create open menu item
+		mnFileOpen.setText( "Open" );
+		mmFile.add( mnFileOpen );// nest it under file
 
-		JMenu mnFile = new JMenu( "File" );// create menu file
-		menuBar.add( mnFile );// nest it under menu bar
+		mnFileSaveAs = new JMenuItem( Actions.new SaveFileAction( tabEditorPane ) );// create the save menu item
+		mnFileSaveAs.setText( "Save As" );
+		mmFile.add( mnFileSaveAs );
+		mnFileSaveAs.setEnabled( false );
 
-		JMenuItem mntmOpen = new JMenuItem( menuActions.new OpenFileAction( "Open" ) );// create open menu item
-		mnFile.add( mntmOpen );// nest it under file
+		mnFileSave = new JMenuItem( Actions.new SaveFileAction( tabEditorPane ) );// create the save menu item
+		mnFileSave.setText( "Save" );
+		mmFile.add( mnFileSave );
+		mnFileSave.setEnabled( false );
 
-		JMenuItem mntmSaveAs = new JMenuItem( menuActions.new SaveFileAction( tabEditorPane ) );// create the save menu item
-		mntmSaveAs.setText( "Save As" );
-		mnFile.add( mntmSaveAs );
+		/* Create the menus under document and add them */
+		JMenuItem mnDocPText = new JMenuItem( Actions.new NewFileAction( "New Plain Text" ) );
+		mmDoc.add( mnDocPText );
 
-		mntmSave = new JMenuItem( menuActions.new SaveFileAction( tabEditorPane ) );// create the save menu item
-		mntmSave.setText( "Save" );
-		mnFile.add( mntmSave );
-		mntmSave.setEnabled( false );
+		JMenuItem mnDocRText = new JMenuItem( Actions.new NewFileAction( "New Rich Text" ) );
+		mmDoc.add( mnDocRText );
 
 		// JMenuItem mntmNew = new JMenuItem( new NewFileAction( "New" ) );// create the save menu item
 		// ***JMenuItem mntmNew = new JMenuItem( menuActions.new NewFileAction( "New" ) );// create the save menu item
@@ -217,23 +241,51 @@ public class TextEditor {
 		// mnFile.add( mntmNew );
 
 		JMenuItem mntmClose = new JMenuItem( "Close" );// create the save menu item
-		mntmSave.addActionListener( new ActionListener() {
+		mnFileSave.addActionListener( new ActionListener() {
 
 			@Override
 			public void actionPerformed( ActionEvent e ) {
-				close();
 
 			}
 
 		} );
-		mnFile.add( mntmClose );
+		mmFile.add( mntmClose );
 
-		return menuBar;
-	}
+		JMenu menuStyle = new JMenu( "Style" );
 
-	private void close() {
-		// txaMainEditor.
+		Action action = new StyledEditorKit.BoldAction();
+		action.putValue( Action.NAME, "Bold" );
+		menuStyle.add( action );
 
+		action = new StyledEditorKit.ItalicAction();
+		action.putValue( Action.NAME, "Italic" );
+		menuStyle.add( action );
+
+		action = new StyledEditorKit.UnderlineAction();
+		action.putValue( Action.NAME, "Underline" );
+		menuStyle.add( action );
+
+		menuStyle.addSeparator();
+
+		menuStyle.add( new StyledEditorKit.FontSizeAction( "12", 12 ) );
+		menuStyle.add( new StyledEditorKit.FontSizeAction( "14", 14 ) );
+		menuStyle.add( new StyledEditorKit.FontSizeAction( "18", 18 ) );
+
+		menuStyle.addSeparator();
+
+		menuStyle.add( new StyledEditorKit.FontFamilyAction( "Serif", "Serif" ) );
+		menuStyle.add( new StyledEditorKit.FontFamilyAction( "SansSerif", "SansSerif" ) );
+
+		menuStyle.addSeparator();
+
+		menuStyle.add( new StyledEditorKit.ForegroundAction( "Red", Color.red ) );
+		menuStyle.add( new StyledEditorKit.ForegroundAction( "Green", Color.green ) );
+		menuStyle.add( new StyledEditorKit.ForegroundAction( "Blue", Color.blue ) );
+		menuStyle.add( new StyledEditorKit.ForegroundAction( "Black", Color.black ) );
+
+		mainMenuBar.add( menuStyle );
+
+		return mainMenuBar;
 	}
 
 	public JTextPane getMainEditorPane() {
@@ -268,34 +320,114 @@ public class TextEditor {
 	 *
 	 * @param br
 	 *            the content gathered from file
-	 * @param dir
+	 * @param path
 	 *            the string representation of the directory of the file
 	 * @param fileName
 	 *            the string representation of the file name
 	 */
-	public void newContentTab( BufferedReader br, String dir, String fileName ) {
+	public TextEditorPane newContentTab( BufferedReader br, String path, String fileName, String fileType ) {
 		Color color[] = randomColor();
-		/* add a tab with the dir and filename as the title, setting the component as type TextEditorWrap */
-		// TODO: do something about creating a new instance of an editor on the fly
-		tabEditorPane.addTab( fileName, new TextEditorWrap( new MyDocumentListener(), br, dir, fileName, color[ 0 ] ) );
+		TextEditorPane tab = null;
+
+		tab = new TextEditorWrap( br, path, fileName, color[ 0 ], true );
+
+		tabEditorPane.addTab( tab.getFileName(), tab );
 
 		/* Move to the just created tab */
 		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( fileName ) );
 
 		/* Set tooltip text and color */
-		tabEditorPane.setToolTipTextAt( tabEditorPane.indexOfTab( fileName ), dir );
+		tabEditorPane.setToolTipTextAt( tabEditorPane.indexOfTab( fileName ), path );
 		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( fileName ), color[ 1 ] );
+
+		return tab;
 
 	}
 
-	public void newBlankTab() {
+	/**
+	 * Method to create a new tab with content (such as opening a text file).
+	 *
+	 * @param fis
+	 *            the content gathered from file
+	 * @param path
+	 *            the string representation of the directory of the file
+	 * @param fileName
+	 *            the string representation of the file name
+	 * @throws BadLocationException 
+	 */
+	public TextEditorPane newContentTab( FileInputStream fis, String path, String fileName, String fileType ) throws BadLocationException {
 		Color color[] = randomColor();
-		tabEditorPane.add( "Untitled" + tc, new TextEditorWrap( new MyDocumentListener(), "Untitled" + tc, color[ 0 ] ) );
-		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( "Untitled" + tc ) );
-		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( "Untitled" + tc ), color[ 1 ] );
-		tabEditorPane.getComponentAt( tabEditorPane.indexOfTab( "Untitled" + tc ) ).requestFocus();// give the child component the focus
-		tc++;
+		TextEditorPane tab = null;
 
+		tab = new RichTextEditor( fis, path, fileName, color[ 0 ], true );
+
+		tabEditorPane.addTab( tab.getFileName(), tab );
+
+		/* Move to the just created tab */
+		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( fileName ) );
+
+		/* Set tooltip text and color */
+		tabEditorPane.setToolTipTextAt( tabEditorPane.indexOfTab( fileName ), path );
+		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( fileName ), color[ 1 ] );
+
+		return tab;
+
+	}
+
+	public TextEditorPane newBlankTab( String extension ) {
+		Color color[] = randomColor();
+
+		/* Create a new instance of an editor tab */
+		String title = "Untitled" + tc;
+		TextEditorPane tab;
+
+		switch ( extension ) {
+		case ".rtf":
+			tab = new RichTextEditor( title, appDataPath, color[ 0 ] );
+			break;
+		case ".txt":
+		default:
+			tab = new TextEditorWrap( title, appDataPath, color[ 0 ] );
+			break;
+		}
+
+		tabEditorPane.add( title, tab );
+		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( title ) );
+		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( title ), color[ 1 ] );
+		tabEditorPane.getComponentAt( tabEditorPane.indexOfTab( title ) ).requestFocus();// give the child component the focus
+		tc++;
+		return tab;
+
+	}
+
+	public TextEditorPane fillExisitingTab( String path, String fileName, String fileType, String textToSave ) {
+		Color color[] = randomColor();
+		int index = tabEditorPane.getSelectedIndex();
+		TextEditorPane listener = ( TextEditorPane ) tabEditorPane.getComponentAt( index );
+		// listener.getDocument().removeDocumentListener( listener.getDocListener() );
+		// tabEditorPane.remove( index );
+		TextEditorPane tab = null;
+
+		switch ( fileType ) {
+		case "text/rtf":
+			tab = new RichTextEditor( textToSave, path, fileName, color[ 0 ], true );
+			break;
+		case "text/plain":
+			tab = new TextEditorWrap( textToSave, path, fileName, color[ 0 ], true );
+		default:
+			break;
+		}
+
+		tabEditorPane.addTab( tab.getFileName(), tab );
+
+		/* Move to the just created tab */
+		tabEditorPane.setSelectedIndex( tabEditorPane.indexOfTab( fileName ) );
+		tab.setText( textToSave );
+		/* Set tooltip text and color */
+		tabEditorPane.setToolTipTextAt( tabEditorPane.indexOfTab( fileName ), path );
+		tabEditorPane.setBackgroundAt( tabEditorPane.indexOfTab( fileName ), color[ 1 ] );
+
+		return tab;
 	}
 
 	public Color[] randomColor() {
@@ -314,39 +446,95 @@ public class TextEditor {
 	public void updateTab( String fileName, String path, int index ) {
 
 		tabEditorPane.setTitleAt( index, fileName );
-		tabEditorPane.setToolTipTextAt( index, path + fileName );
+		tabEditorPane.setToolTipTextAt( index, path );
 
 	}
 
-}
+	public void asteriskManagement( String name, String state ) {
 
-class MyDocumentListener implements DocumentListener {
+		int index = tabEditorPane.getSelectedIndex();
+		TextEditorPane tab = ( TextEditorPane ) tabEditorPane.getComponentAt( index );
+		System.out.println( tab.getFileName() );
 
-	// final String newline = "\n";
+		/* We do not want to add an asterisk to an untitled unsaved tab */
+		if ( tab.getFileName().contains( "Untitled" ) ) {
+			// do nothing
+		} else if ( state == "saved" ) {
+			// tabEditorPane.setTitleAt( index, tab.getFileName() );
+			mnFileSave.setEnabled( false );
+		} else if ( state == "update" ) {
+			String newTitle = "*" + tab.getFileName();
+			tabEditorPane.setTitleAt( index, newTitle );
+			mnFileSave.setEnabled( true );
+		}
 
-	public void insertUpdate( DocumentEvent e ) {
-		// updateLog(e, "inserted into");
-		System.out.println( e );
 	}
 
-	public void removeUpdate( DocumentEvent e ) {
-		System.out.println( "remove update" );
+	class MyDocumentListener implements DocumentListener {
+
+		// final String newline = "\n";
+		int count;
+
+		public MyDocumentListener() {
+			this.count = 0;
+		}
+
+		public void changedUpdate( DocumentEvent documentEvent ) {
+			printIt( documentEvent );
+		}
+
+		public void insertUpdate( DocumentEvent documentEvent ) {
+			printIt( documentEvent );
+		}
+
+		public void removeUpdate( DocumentEvent documentEvent ) {
+			printIt( documentEvent );
+		}
+
+		private void printIt( DocumentEvent documentEvent ) {
+			DocumentEvent.EventType type = documentEvent.getType();
+
+			if ( count < 1 ) {
+				count++;
+			} else {
+				asteriskManagement( documentEvent.getDocument().getProperty( "file name" ).toString(), "update" );
+			}
+			// String typeString = null;
+
+			// System.out.println( documentEvent.getDocument().getProperty( "file name" ) );
+
+			if ( type.equals( DocumentEvent.EventType.CHANGE ) ) {
+				// typeString = "Change";
+			} else if ( type.equals( DocumentEvent.EventType.INSERT ) ) {
+				// typeString = "Insert";
+			} else if ( type.equals( DocumentEvent.EventType.REMOVE ) ) {
+				// typeString = "Remove";
+			}
+			// System.out.print("Type : " + typeString);
+			// Document source = documentEvent.getDocument();
+			// int length = source.getLength();
+			// System.out.println("Length: " + length);
+		}
+
+		// public void updateLog(DocumentEvent e, String action) {
+		// Document doc = (Document)e.getDocument();
+		// int changeLength = e.getLength();
+		// displayArea.append(
+		// changeLength + " character"
+		// + ((changeLength == 1) ? " " : "s ")
+		// + action + " " + doc.getProperty("name") + "."
+		// + newline
+		// + "  Text length = " + doc.getLength() + newline);
+		// displayArea.setCaretPosition(displayArea.getDocument().getLength());
+		// }
+
 	}
 
-	public void changedUpdate( DocumentEvent e ) {
-		// Plain text components don't fire these events.
-		System.out.println( "change update" );
+	public void registerDocListener( TextEditorPane ep ) {
+		TextEditorPane tab = ( TextEditorPane ) tabEditorPane.getComponentAt( tabEditorPane.indexOfTab( ep.getFileName() ) );
+		MyDocumentListener dl = new MyDocumentListener();
+		tab.getDocument().addDocumentListener( dl );
+		tab.setDocListener( dl );
 	}
 
-	// public void updateLog(DocumentEvent e, String action) {
-	// Document doc = (Document)e.getDocument();
-	// int changeLength = e.getLength();
-	// displayArea.append(
-	// changeLength + " character"
-	// + ((changeLength == 1) ? " " : "s ")
-	// + action + " " + doc.getProperty("name") + "."
-	// + newline
-	// + "  Text length = " + doc.getLength() + newline);
-	// displayArea.setCaretPosition(displayArea.getDocument().getLength());
-	// }
 }
